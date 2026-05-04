@@ -93,7 +93,7 @@ def plot_wins_per_year(df: pd.DataFrame):
     ax.set_ylabel("Races")
     ax.set_title("Races per season")
 
-    save("04_races_per_year.png")
+    save("races_per_year.png")
 
 
 def plot_feature_distributions(df: pd.DataFrame, feature_columns: list[str]):
