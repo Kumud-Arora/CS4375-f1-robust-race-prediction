@@ -93,17 +93,18 @@ class RegressionTree:
 
 
 class GradientBoostingClassifier:
-    def __init__(self, n_estimators=50, learning_rate=0.1, max_depth=3, subsample=1.0):
+    def __init__(self, n_estimators=50, learning_rate=0.1, max_depth=3, subsample=1.0, random_state=42):
         self.n_estimators = n_estimators
         self.learning_rate = learning_rate
         self.max_depth = max_depth
         self.subsample = subsample
+        self.random_state = random_state
 
         self.trees = []
         self.base = 0
 
     def sigmoid(self, x):
-        return 1 / (1 + np.exp(-x))
+        return np.where(x >= 0, 1 / (1 + np.exp(-x)), np.exp(x) / (1 + np.exp(x)))
 
     def log_odds(self, y):
         p = np.mean(y)
@@ -152,3 +153,19 @@ class GradientBoostingClassifier:
 
     def predict(self, X, threshold=0.5):
         return (self.predict_proba(X)[:, 1] > threshold).astype(int)
+    
+    def staged_loss(self, X, y):
+        X = np.array(X)
+        y = np.array(y)
+
+        pred = np.full(len(X), self.base)
+        losses = []
+        eps = 1e-7
+
+        for t in self.trees:
+            pred += self.learning_rate * t.predict(X)
+            p = np.clip(self.sigmoid(pred), eps, 1 - eps)
+            loss = -np.mean(y * np.log(p) + (1 - y) * np.log(1 - p))
+            losses.append(loss)
+        
+        return losses

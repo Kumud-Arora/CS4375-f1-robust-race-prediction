@@ -13,7 +13,7 @@ def load_csv(filename: str) -> pd.DataFrame:
             f"'{filename}' not found in {DATA_DIR}. Download from Kaggle and put files in the data folder."
         )
     df = pd.read_csv(path)
-    print(f"Loaded {filename}: {df.shape[0]} rows, {df.shape[1]} cols")
+    print(f"  Loaded {filename:40s} → {df.shape[0]:>6,} rows × {df.shape[1]} cols")
     return df
 
 def load_all() -> dict[str, pd.DataFrame]:
@@ -33,8 +33,7 @@ def load_all() -> dict[str, pd.DataFrame]:
 
 def clean_results(results: pd.DataFrame, races: pd.DataFrame) -> pd.DataFrame:
     df = results.merge(
-        races[["raceId", "year", "round", "circuitId", "name"]],
-        on="raceId", how="left"
+        races[["raceId", "year", "round", "circuitId", "name"]], on="raceId", how="left"
     )
 
     for col in df.columns:
@@ -52,7 +51,7 @@ def clean_results(results: pd.DataFrame, races: pd.DataFrame) -> pd.DataFrame:
     df["podium"] = (df["positionOrder"] <= 3).astype(int)
     df["win"] = (df["positionOrder"] == 1).astype(int)
 
-    print(f"Cleaned results: {df.shape[0]} rows, {df.shape[1]} cols")
+    print(f"  Results after cleaning: {df.shape[0]:,} rows, {df.shape[1]} cols")
     return df
 
 
