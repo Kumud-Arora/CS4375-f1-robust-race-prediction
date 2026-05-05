@@ -106,6 +106,17 @@ def evaluate(model, X, y, name="model"):
     return metrics
 
 
+def log_experiment(exp_num, params, metrics):
+    log_path = os.path.join(LOG_DIR, "experiment_log.csv")
+    row = {"experiment": exp_num, **params, **metrics}
+    df = pd.DataFrame([row])
+    if os.path.exists(log_path):
+        df.to_csv(log_path, mode="a", header=False, index=False)
+    else:
+        df.to_csv(log_path, index=False)
+    print("logged experiment", exp_num)
+
+
 def plot_roc(m1, m2, X, y):
     fig, ax = plt.subplots()
 
@@ -114,6 +125,7 @@ def plot_roc(m1, m2, X, y):
         fpr, tpr, _ = roc_curve(y, p)
         auc = roc_auc_score(y, p)
         ax.plot(fpr, tpr, label=f"{label} (AUC={auc:.2f})")
+
     ax.plot([0, 1], [0, 1], "--", color="grey")
     ax.set_xlabel("False Positive Rate")
     ax.set_ylabel("True Positive Rate")
@@ -123,11 +135,14 @@ def plot_roc(m1, m2, X, y):
 
 
 def plot_pr(m1, m2, X, y):
+    fig, ax = plt.subplots() 
+
     for model, label in [(m1, "scratch"), (m2, "sklearn")]:
         p = model.predict_proba(X)[:, 1]
         prec, rec, _ = precision_recall_curve(y, p)
         ap = average_precision_score(y, p)
         ax.plot(rec, prec, label=f"{label} (AP={ap:.2f})")
+
     ax.set_xlabel("Recall")
     ax.set_ylabel("Precision")
     ax.set_title("Precision-Recall Curve")
@@ -144,58 +159,60 @@ def plot_confusion(model, X, y, name):
                 yticklabels=["No Podium", "Podium"], ax=ax)
     ax.set_xlabel("Predicted")
     ax.set_ylabel("Actual")
-    ax.set_title(f"Confusion Matrix — {name}")
+    ax.set_title(f"Confusion Matrix - {name}")
     save_fig(f"cm_{name}.png")
 
 
 def plot_learning_curve(model, X_train, y_train, X_test, y_test):
     train_loss = model.staged_loss(X_train, y_train)
-    test_loss  = model.staged_loss(X_test, y_test)
+    test_loss = model.staged_loss(X_test, y_test)
+
     fig, ax = plt.subplots(figsize=(8, 5))
     ax.plot(train_loss, label="train loss")
-    ax.plot(test_loss,  label="test loss")
+    ax.plot(test_loss, label="test loss")
     ax.set_xlabel("Boosting round")
     ax.set_ylabel("Log-loss")
     ax.set_title("Learning Curve")
     ax.legend()
     save_fig("learning_curve.png")
- 
- 
+
+
 def plot_feature_importance(model, feature_cols):
     counts = np.zeros(len(feature_cols))
- 
+
     def count_splits(node):
         if node is None or node.value is not None:
             return
-        counts[node.feature_idx] += 1
+        counts[node.feature] += 1     
         count_splits(node.left)
         count_splits(node.right)
- 
-    for tree in model._trees:
+
+    for tree in model.trees:
         count_splits(tree.root)
- 
+
     importance = counts / (counts.sum() + 1e-9)
     order = np.argsort(importance)
- 
+
     fig, ax = plt.subplots(figsize=(9, 6))
     ax.barh([feature_cols[i] for i in order], importance[order])
     ax.set_xlabel("Relative importance (split frequency)")
-    ax.set_title("Feature Importance — Scratch GB")
+    ax.set_title("Feature Importance - Scratch GB")
     plt.tight_layout()
     save_fig("feature_importance.png")
- 
- 
+
+
 def adversarial_robustness(model, X_test, y_test):
-    """Test model stability by adding Gaussian noise to inputs."""
     print("\nRunning adversarial robustness test")
     noise_levels = [0.0, 0.05, 0.1, 0.2, 0.3, 0.5, 1.0]
     aucs = []
     rng = np.random.default_rng(0)
+
     for sigma in noise_levels:
         X_noisy = X_test + rng.normal(0, sigma, size=X_test.shape)
         auc = roc_auc_score(y_test, model.predict_proba(X_noisy)[:, 1])
         aucs.append(auc)
         print("noise:", sigma, "auc:", round(auc, 4))
+
     fig, ax = plt.subplots(figsize=(7, 5))
     ax.plot(noise_levels, aucs, marker="o")
     ax.axhline(aucs[0], linestyle="--", color="grey", label=f"clean AUC={aucs[0]:.3f}")
@@ -204,48 +221,51 @@ def adversarial_robustness(model, X_test, y_test):
     ax.set_title("Adversarial Robustness")
     ax.legend()
     save_fig("adversarial_robustness.png")
+
     return dict(zip(noise_levels, aucs))
- 
- 
+
+
 def decision_simulation(model, feature_cols):
-    # simple simulation: pick best driver each race
     print("\nRunning decision simulation")
     df, _ = build_features()
     test_df = df[df["year"] >= 2020].copy()
-    from sklearn.preprocessing import StandardScaler
+
     scaler = StandardScaler()
-    # Refit scaler on train portion
     train_df = df[df["year"] < 2020]
     scaler.fit(train_df[feature_cols].fillna(0).values)
     X = scaler.transform(test_df[feature_cols].fillna(0).values)
+
     test_df["pred_prob"] = model.predict_proba(X)[:, 1]
- 
+
     results = []
     for race_id, grp in test_df.groupby("raceId"):
         best_idx = grp["pred_prob"].idxmax()
         results.append(int(grp.loc[best_idx, "podium"]))
- 
+
     hit_rate = np.mean(results)
     baseline = test_df["podium"].mean()
+
     print(f"  Races: {len(results)}")
     print(f"  Model top-pick podium rate: {hit_rate:.2%}")
     print(f"  Random baseline:            {baseline:.2%}")
     print(f"  Lift: {hit_rate / baseline:.2f}x")
+
     return hit_rate
+
 
 def main():
     X_train, X_test, y_train, y_test, features = prepare_data()
- 
-    # Experiment 1 — Scratch GB
+
+    # Experiment 1 - Scratch GB
     scratch = train_scratch(X_train, y_train)
     m1 = evaluate(scratch, X_test, y_test, "scratch_gb")
     log_experiment(1, {"algorithm": "scratch_gb", "n_estimators": 150, "lr": 0.05, "max_depth": 3, "subsample": 0.8}, m1)
- 
-    # Experiment 2 — Sklearn baseline
+
+    # Experiment 2 - Sklearn baseline
     sklearn_model = train_sklearn(X_train, y_train)
     m2 = evaluate(sklearn_model, X_test, y_test, "sklearn_gb")
     log_experiment(2, {"algorithm": "sklearn_gb", "n_estimators": 150, "lr": 0.05, "max_depth": 3, "subsample": 0.8}, m2)
- 
+
     # Plots
     plot_roc(scratch, sklearn_model, X_test, y_test)
     plot_pr(scratch, sklearn_model, X_test, y_test)
@@ -253,13 +273,13 @@ def main():
     plot_confusion(sklearn_model, X_test, y_test, "sklearn")
     plot_learning_curve(scratch, X_train, y_train, X_test, y_test)
     plot_feature_importance(scratch, features)
- 
+
     # Adversarial robustness
     adversarial_robustness(scratch, X_test, y_test)
- 
+
     # Decision simulation
     decision_simulation(scratch, features)
- 
+
     print("Done, check outputs folder for plots and experiment_log.csv")
 
 
