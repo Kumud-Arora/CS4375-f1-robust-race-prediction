@@ -1,11 +1,17 @@
-# CS4375-f1-robust-race-prediction
-# F1 Race Outcome Prediction
- 
-Predicts Formula 1 podium finishes using Gradient Boosting implemented from scratch.
- 
-**Course:** CS 4375 — Introduction to Machine Learning  
-**Dataset:** [Formula 1 World Championship 1950-2024](https://www.kaggle.com/datasets/muhammadehsan02/formula-1-world-championship-history-1950-2024)
- 
+# 🏎️ F1 Race Outcome Prediction
+
+### Robust Prediction of Formula 1 Race Outcomes Using Gradient Boosting with Adversarial Evaluation and Decision Simulation
+
+This project builds a from-scratch Gradient Boosting model to predict Formula 1 podium finishes using historical race data from 1950–2024. It was developed as part of my Introduction to Machine Learning (CS 4375) course at UT Dallas, with a focus on implementing the core algorithm manually to better understand how it works under the hood, instead of relying on libraries like sklearn.
+
+## ⚙️ Methodological Background
+
+Gradient Boosting, introduced by Friedman, builds models iteratively by fitting each new learner to the residual errors (negative gradients) of the previous one. With small updates at each step, it forms a strong, well-regularized ensemble that performs especially well on noisy, real-world data.
+
+> *Friedman showed that boosting reduces error iteratively; Formula 1 shows that error can evolve.*
+
+## Dataset: [Formula 1 World Championship 1950-2024](https://www.kaggle.com/datasets/muhammadehsan02/formula-1-world-championship-history-1950-2024)
+
 ## Project structure
  
 ```
@@ -27,7 +33,7 @@ f1-ml-project/
 ## Setup
  
 ```bash
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate        # For Windows use: venv\Scripts\activate
 pip install -r requirements.txt
 ```
@@ -37,13 +43,14 @@ pip install -r requirements.txt
 1. Go to the Kaggle link above
 2. Download all CSVs
 3. Place them in the `data/` folder
+   
 ## Run
- 
+
 ```bash
 cd src
-python data_loader.py       # verify data loads correctly
-python eda.py               # generate EDA plots
-python train_evaluate.py    # train model + all evaluation
+python3 data_loader.py       # verify data loads correctly
+python3 eda.py               # generate EDA plots
+python3 train_evaluate.py    # train model + all evaluation
 ```
  
 ## Results
