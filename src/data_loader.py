@@ -19,12 +19,12 @@ def load_csv(filename: str) -> pd.DataFrame:
 def load_all() -> dict[str, pd.DataFrame]:
     print("Loading data: ")
     tables = {
-        "results": load_csv("Results.csv"),
-        "races": load_csv("Races.csv"),
-        "drivers": load_csv("Drivers.csv"),
-        "constructors": load_csv("Constructors.csv"),
-        "qualifying": load_csv("Qualifying.csv"),
-        "driver_standings": load_csv("Driver_Standings.csv"),
+        "results":               load_csv("Race_Results.csv"),
+        "races":                 load_csv("Race_Schedule.csv"),
+        "drivers":               load_csv("Driver_Details.csv"),
+        "constructors":          load_csv("Team_Details.csv"),
+        "qualifying":            load_csv("Qualifying_Results.csv"),
+        "driver_standings":      load_csv("Driver_Rankings.csv"),
         "constructor_standings": load_csv("Constructor_Rankings.csv"),
     }
     print(f"{len(tables)} tables loaded")
